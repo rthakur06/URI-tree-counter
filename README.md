@@ -44,10 +44,6 @@ const CONFIG = {
 
 ## Google Sheet setup
 
-1. **Share the spreadsheet** (not just the form): **Share → General access → Anyone with the link → Viewer**. Sharing the Form does not share the Sheet — they are separate.
-2. **Tab name**: set `SHEET_NAME` to the response tab's exact name (a form-linked sheet usually defaults to `Form Responses 1`; this project uses `Form_Responses`).
-3. **Columns**: the page matches headers flexibly, so the form's question wording works as-is. Recognized fields:
-
 | Field | What it is | Matches headers like |
 |-------|------------|----------------------|
 | Country | Required. Groups plantings on the map. | "Country" |
@@ -64,22 +60,9 @@ Country names are forgiving: "USA", "United States", "U.S." all map to the same 
 
 Photos are read from Google Drive links anywhere in a row (e.g. `drive.google.com/file/d/<id>/view`). **Drive files are private by default**, so the page can only display them if the file is publicly viewable.
 
-- If the form collects photos via a **file-upload question**, the uploads land in a Drive folder owned by the form's creator. Set that folder to **Anyone with the link → Viewer** so all current and future uploads display.
-- Quick public-or-not test (open in an incognito window): `https://lh3.googleusercontent.com/d/<FILE_ID>=w800` — if the image shows, it's public.
+- If the form collects photos via a **file-upload question**, the uploads land in a Drive folder owned by the form's creator.
 
 Images that can't load are hidden automatically rather than showing broken icons.
-
-## Deploying
-
-It's a static file, so any static host works:
-
-- **Netlify** — drag the folder onto [app.netlify.com/drop](https://app.netlify.com/drop).
-- **GitHub Pages** — push the repo, then Settings → Pages → deploy from branch (root).
-- **Vercel** — "Add New → Project", import the repo, accept defaults.
-
-Keep the filename `index.html` so it serves as the homepage.
-
-> **Note:** live sheet data only loads on the deployed URL (or a local server). When opening the file directly or in a preview sandbox, the page falls back to built-in sample data.
 
 ## Local preview
 
