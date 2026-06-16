@@ -35,7 +35,9 @@
     START_DATE: "2026-01-01",     // inclusive
     END_DATE:   "2026-06-30",     // inclusive
     REFRESH_SECONDS: 45,          // how often to re-check the sheet for new entries
-    ADD_NUMBERS_URL: "https://docs.google.com/forms/d/e/1FAIpQLSfiuh2CBvgcwBXmFWSPiKtrkQkqWjx4WJlhEc_TN4bOR2jRaw/viewform"  // submission form
+    ADD_NUMBERS_URL: "https://docs.google.com/forms/d/e/1FAIpQLSfiuh2CBvgcwBXmFWSPiKtrkQkqWjx4WJlhEc_TN4bOR2jRaw/viewform",  // submission form
+    CO2_KG_PER_TREE_YEAR: 10,   // rough CO2 absorbed per tree per year once established (conservative estimate)
+    CAR_KG_CO2_YEAR: 4600       // approx CO2 from one average passenger car per year (EPA estimate)
   };
 </script>
 
@@ -102,6 +104,14 @@
   .spotlight .sl-desc { color:#34495b; font-size:14px; margin-top:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .spotlight .sl-trees { font-family:"Mulish",sans-serif; font-weight:800; color:var(--green); font-size:16px; margin-top:8px; }
   @media (max-width:560px){ .spotlight{grid-template-columns:1fr;} .spotlight .sl-photo{width:100%;height:160px;} }
+
+  /* ---------- IMPACT ---------- */
+  .impact-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+  .impact-card { background:linear-gradient(135deg,#eef7f1,#e7f1ee); border:1px solid var(--line); border-radius:16px; padding:22px 24px; }
+  .impact-card .ic-num { font-family:"Mulish",sans-serif; font-weight:800; font-size:30px; color:var(--green-deep); line-height:1.05; font-variant-numeric:tabular-nums; }
+  .impact-card .ic-unit { font-weight:600; font-size:15px; color:var(--green); }
+  .impact-card .ic-lbl { color:var(--muted); font-size:13px; margin-top:8px; }
+  .impact-note { color:var(--muted); font-size:12px; margin-top:14px; line-height:1.5; }
 
   /* ---------- SECTIONS ---------- */
   section { padding:36px 0; }
@@ -226,6 +236,12 @@
         <div class="tooltip" id="tooltip"></div>
         <div class="legend"><span>Fewer trees</span><span class="bar"></span><span>More</span></div>
       </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Estimated environmental impact</h2></div>
+      <div class="impact-grid" id="impact"></div>
+      <p class="impact-note" id="impact-note"></p>
     </section>
 
     <section>
@@ -518,6 +534,20 @@ function renderStats(){
   $("stats").innerHTML=items.map(i=>`<div class="stat"><div class="num">${i.num.toLocaleString()}</div><div class="lbl">${i.lbl}</div></div>`).join("");
 }
 
+function renderImpact(total){
+  const co2kg = total * CONFIG.CO2_KG_PER_TREE_YEAR;
+  const tonnes = co2kg/1000;
+  const cars = co2kg / CONFIG.CAR_KG_CO2_YEAR;
+  const fmtT = tonnes>=10 ? Math.round(tonnes).toLocaleString() : tonnes.toFixed(1);
+  const fmtC = cars>=10 ? Math.round(cars).toLocaleString() : cars.toFixed(1);
+  const tiles=[
+    {num:fmtT, unit:"tonnes CO\u2082 / year", lbl:"Estimated carbon absorbed each year, once these trees are established"},
+    {num:fmtC, unit:(cars>=1&&cars<2)?"car":"cars", lbl:"Equivalent to taking this many cars off the road for a year"}
+  ];
+  $("impact").innerHTML = tiles.map(t=>`<div class="impact-card"><span class="ic-num">${t.num}</span> <span class="ic-unit">${t.unit}</span><div class="ic-lbl">${t.lbl}</div></div>`).join("");
+  $("impact-note").textContent = `Estimates only. Based on roughly ${CONFIG.CO2_KG_PER_TREE_YEAR} kg of CO\u2082 absorbed per tree per year once established \u2014 a conservative figure; real sequestration varies widely by species, age, climate, and tree survival. Car comparison uses about ${(CONFIG.CAR_KG_CO2_YEAR/1000).toLocaleString()} tonnes of CO\u2082 per average passenger vehicle per year.`;
+}
+
 function renderRoll(){
   const sorted=[...byCountry.values()].sort((a,b)=>b.trees-a.trees);
   $("roll").innerHTML=sorted.map((g,i)=>{
@@ -608,7 +638,7 @@ function startSpotlight(){
   spotlightTimer=setInterval(()=>{
     const el=$("spotlight"); el.classList.add("fade");
     setTimeout(()=>{ renderSpotlight(); el.classList.remove("fade"); }, 500);
-  }, 20000); // rotate every 60s
+  }, 30000); // rotate every 30s
 }
 
 let lastUpdated=null;
@@ -626,7 +656,7 @@ async function refresh(initial){
   if(initial){ $("loading").classList.add("hidden"); $("content").classList.remove("hidden"); }
   animateCount($("total"), initial?0:prevTotal, total);
   prevTotal=total;
-  renderStats(); paint(); renderRoll();
+  renderStats(); renderImpact(total); paint(); renderRoll();
   if(initial) startSpotlight(); else renderSpotlight();
   if(openKey && byCountry.has(openKey)) openPanel(byCountry.get(openKey));
   lastUpdated=Date.now(); setUpdatedLabel();
