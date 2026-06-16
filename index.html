@@ -113,6 +113,13 @@
   .impact-card .ic-lbl { color:var(--muted); font-size:13px; margin-top:8px; }
   .impact-note { color:var(--muted); font-size:12px; margin-top:14px; line-height:1.5; }
 
+  /* ---------- MOSAIC ---------- */
+  .mosaic { column-count:4; column-gap:10px; }
+  .mosaic-img { width:100%; display:block; margin:0 0 10px; border-radius:10px; cursor:zoom-in; break-inside:avoid; background:var(--map-bg); border:1px solid var(--line); transition:filter .15s ease; }
+  .mosaic-img:hover, .mosaic-img:focus-visible { filter:brightness(1.06); outline:2px solid var(--teal); outline-offset:2px; }
+  @media (max-width:900px){ .mosaic{column-count:3;} }
+  @media (max-width:600px){ .mosaic{column-count:2;} }
+
   /* ---------- SECTIONS ---------- */
   section { padding:36px 0; }
   .section-head { display:flex; align-items:baseline; gap:16px; margin-bottom:8px; }
@@ -169,9 +176,10 @@
   .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:8px; margin-top:14px; }
   .gallery img { width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:10px; cursor:zoom-in; background:var(--map-bg); border:1px solid var(--line); }
 
-  .lightbox { position:fixed; inset:0; background:rgba(10,28,42,0.92); display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:80; cursor:zoom-out; }
+  .lightbox { position:fixed; inset:0; background:rgba(10,28,42,0.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:80; cursor:zoom-out; }
   .lightbox.show { opacity:1; pointer-events:auto; }
-  .lightbox img { max-width:100%; max-height:100%; border-radius:12px; }
+  .lightbox img { max-width:100%; max-height:85vh; border-radius:12px; }
+  .lb-cap { color:#eef0e7; font-size:14px; text-align:center; max-width:80ch; }
 
   /* ---------- CTA + FOOTER ---------- */
   .cta { text-align:center; background:linear-gradient(135deg,#15788a,#2E8B57); border-radius:18px; padding:46px 24px; color:#fff; }
@@ -249,6 +257,12 @@
       <div class="roll" id="roll"></div>
     </section>
 
+    <section id="mosaic-section" class="hidden">
+      <div class="section-head"><h2>From the ground</h2><span class="count" id="mosaic-count"></span></div>
+      <p class="hint">Photos shared by Cooperation Circles across the network. Tap any image to view it.</p>
+      <div class="mosaic" id="mosaic"></div>
+    </section>
+
     <section>
       <div class="cta">
         <h2>Have you planted trees this year?</h2>
@@ -270,7 +284,7 @@
 <div class="overlay" id="overlay" aria-hidden="true">
   <div class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title"></div>
 </div>
-<div class="lightbox" id="lightbox"><img id="lightbox-img" alt="" /></div>
+<div class="lightbox" id="lightbox"><img id="lightbox-img" alt="" /><div class="lb-cap" id="lightbox-cap"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
@@ -565,6 +579,25 @@ function renderRoll(){
   }));
 }
 
+function renderMosaic(){
+  const items=[];
+  byCountry.forEach(g=>g.ccs.forEach(c=>c.photos.forEach(p=>items.push({p, cc:c.cc, country:g.display}))));
+  const sec=$("mosaic-section");
+  if(!items.length){ sec.classList.add("hidden"); return; }
+  sec.classList.remove("hidden");
+  $("mosaic").innerHTML = items.map(it=>{
+    const s=photoSources(it.p,600), full=photoSources(it.p,1600);
+    const cap=`${it.cc}${it.country?" \u00b7 "+it.country:""}`;
+    return `<img class="mosaic-img" tabindex="0" loading="lazy" src="${s[0]}" data-srcs='${JSON.stringify(s)}' data-i="0" data-full='${JSON.stringify(full)}' data-cap="${escapeHtml(cap)}" alt="${escapeHtml(cap)}" onerror="window.__imgFallback(this)">`;
+  }).join("");
+  $("mosaic-count").textContent = `${items.length} photo${items.length===1?"":"s"}`;
+  $("mosaic").querySelectorAll(".mosaic-img").forEach(img=>{
+    const open=()=>{ let full; try{ full=JSON.parse(img.getAttribute("data-full")); }catch(e){ full=[img.src]; } openLightbox(full, img.getAttribute("data-cap")); };
+    img.addEventListener("click", open);
+    img.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); open(); } });
+  });
+}
+
 let openKey=null;
 function panelContent(g){
   const ccs=[...g.ccs].sort((a,b)=>b.trees-a.trees);
@@ -601,11 +634,14 @@ function openPanel(g){
 }
 function closePanel(){ openKey=null; $("overlay").classList.remove("show"); $("overlay").setAttribute("aria-hidden","true"); }
 $("overlay").addEventListener("click", e=>{ if(e.target===$("overlay")) closePanel(); });
-function openLightbox(srcs){
+function openLightbox(srcs, caption){
+  if(!srcs || !srcs.length) return;
   const img=$("lightbox-img");
   img.setAttribute("data-srcs", JSON.stringify(srcs)); img.setAttribute("data-i","0");
   img.onerror=()=>window.__imgFallback(img);
-  img.src=srcs[0]; $("lightbox").classList.add("show");
+  img.src=srcs[0];
+  const cap=$("lightbox-cap"); if(cap){ cap.textContent=caption||""; cap.style.display=caption?"block":"none"; }
+  $("lightbox").classList.add("show");
 }
 $("lightbox").addEventListener("click", ()=>$("lightbox").classList.remove("show"));
 document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ $("lightbox").classList.remove("show"); closePanel(); } });
@@ -656,7 +692,7 @@ async function refresh(initial){
   if(initial){ $("loading").classList.add("hidden"); $("content").classList.remove("hidden"); }
   animateCount($("total"), initial?0:prevTotal, total);
   prevTotal=total;
-  renderStats(); renderImpact(total); paint(); renderRoll();
+  renderStats(); renderImpact(total); paint(); renderRoll(); renderMosaic();
   if(initial) startSpotlight(); else renderSpotlight();
   if(openKey && byCountry.has(openKey)) openPanel(byCountry.get(openKey));
   lastUpdated=Date.now(); setUpdatedLabel();
