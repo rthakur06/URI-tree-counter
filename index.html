@@ -325,6 +325,19 @@ function driveImg(u, size){
 }
 const parsePhotos = s => String(s||"").split(/[\n,|]+/).map(x=>x.trim()).filter(x=>/^https?:\/\//.test(x));
 
+function isPhotoUrl(u){
+  return /drive\.google\.com|googleusercontent\.com|\.(jpe?g|png|gif|webp|heic|bmp)(\?|$)/i.test(u);
+}
+function collectPhotos(row){
+  const found=[];
+  Object.keys(row).forEach(k=>{
+    (String(row[k]||"").match(/https?:\/\/\S+/g)||[]).forEach(u=>{
+      u=u.replace(/[),.\]]+$/,"");
+      if(isPhotoUrl(u) && !found.includes(u)) found.push(u);
+    });
+  });
+  return found;
+}
 function parseRows(rows){
   if (!rows.length) return [];
   const hmap = buildHeaderMap(Object.keys(rows[0]));
@@ -333,13 +346,13 @@ function parseRows(rows){
     const get = f => hmap[f]!=null ? r[hmap[f]] : "";
     const trees = parseInt(String(get("trees")).replace(/[^0-9.-]/g,""),10);
     if (!trees || isNaN(trees)) return;
-    let desc = String(get("description")||"").trim();
+    // photos: explicit photo column + any Drive/image links found anywhere in the row
     let photos = parsePhotos(get("photos"));
-    // if photos live inside the description text (a pasted link), pull them out
-    if (!photos.length && /https?:\/\//.test(desc)){
-      photos = desc.match(/https?:\/\/\S+/g) || [];
-      desc = desc.replace(/https?:\/\/\S+/g,"").replace(/\s{2,}/g," ").trim();
-    }
+    collectPhotos(r).forEach(u=>{ if(!photos.includes(u)) photos.push(u); });
+    // description with any photo links stripped out
+    let desc = String(get("description")||"").trim();
+    photos.forEach(u=>{ if(desc.includes(u)) desc = desc.split(u).join(" "); });
+    desc = desc.replace(/\s{2,}/g," ").trim();
     out.push({
       country:String(get("country")||"").trim(),
       project:String(get("project")||"").trim(),
