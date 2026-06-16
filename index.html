@@ -608,7 +608,7 @@ function startSpotlight(){
   spotlightTimer=setInterval(()=>{
     const el=$("spotlight"); el.classList.add("fade");
     setTimeout(()=>{ renderSpotlight(); el.classList.remove("fade"); }, 500);
-  }, 60000); // rotate every 60s
+  }, 20000); // rotate every 60s
 }
 
 let lastUpdated=null;
