@@ -91,6 +91,18 @@
   .stat .num { font-weight:800; font-size:34px; color:var(--ink); font-variant-numeric:tabular-nums; line-height:1; }
   .stat .lbl { font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); margin-top:8px; }
 
+  /* ---------- SPOTLIGHT ---------- */
+  .spotlight { display:grid; grid-template-columns:auto 1fr; gap:20px; align-items:center; width:100%; text-align:left; cursor:pointer; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px; margin:18px 0 4px; font:inherit; color:inherit; box-shadow:0 1px 3px rgba(20,60,90,0.05); transition:opacity .5s ease, transform .15s ease; }
+  .spotlight:hover { transform:translateY(-1px); }
+  .spotlight.fade { opacity:0; }
+  .spotlight .sl-photo { width:120px; height:120px; border-radius:14px; object-fit:cover; background:var(--map-bg); flex:none; }
+  .spotlight .sl-eyebrow { font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--teal); font-weight:700; }
+  .spotlight .sl-name { font-family:"Mulish",sans-serif; font-weight:700; font-size:20px; color:var(--ink); margin-top:4px; }
+  .spotlight .sl-meta { color:var(--muted); font-size:13px; margin-top:2px; }
+  .spotlight .sl-desc { color:#34495b; font-size:14px; margin-top:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .spotlight .sl-trees { font-family:"Mulish",sans-serif; font-weight:800; color:var(--green); font-size:16px; margin-top:8px; }
+  @media (max-width:560px){ .spotlight{grid-template-columns:1fr;} .spotlight .sl-photo{width:100%;height:160px;} }
+
   /* ---------- SECTIONS ---------- */
   section { padding:36px 0; }
   .section-head { display:flex; align-items:baseline; gap:16px; margin-bottom:8px; }
@@ -123,8 +135,8 @@
   .roll-row:hover { background:#eef5f9; }
   .roll-row:focus-visible { outline:2px solid var(--teal); outline-offset:-2px; }
   .roll-rank { color:var(--teal); font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; text-align:right; }
-  .roll-country { display: block; font-weight:700; font-size:16px; color:var(--ink); }
-  .roll-meta { display: block; color:var(--muted); font-size:13px; margin-top:3px; }
+  .roll-country { display:block; font-weight:700; font-size:16px; color:var(--ink); }
+  .roll-meta { display:block; color:var(--muted); font-size:13px; margin-top:3px; }
   .roll-trees { font-family:"Mulish",sans-serif; font-weight:800; font-size:24px; color:var(--green); font-variant-numeric:tabular-nums; text-align:right; line-height:1; }
   .roll-trees small { display:block; font-family:"Inter",sans-serif; font-weight:500; font-size:11px; color:var(--muted); letter-spacing:0.04em; text-transform:uppercase; margin-top:4px; }
 
@@ -203,6 +215,8 @@
 
   <div id="content" class="hidden">
     <div class="stats" id="stats"></div>
+
+    <button class="spotlight hidden" id="spotlight" aria-label="Featured Cooperation Circle"></button>
 
     <section>
       <div class="section-head"><h2>Where it's growing</h2><span class="count" id="map-count"></span></div>
@@ -317,12 +331,33 @@ function matchFeature(country){
   return null;
 }
 
-function driveImg(u, size){
-  u = u.trim();
-  let m = u.match(/drive\.google\.com\/file\/d\/([^/]+)/) || u.match(/[?&]id=([^&]+)/);
-  if (m) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w" + (size||1200);
-  return u;
+function driveId(u){
+  u = String(u).trim();
+  const m = u.match(/\/file\/d\/([-\w]{20,})/)
+         || u.match(/[?&]id=([-\w]{20,})/)
+         || u.match(/googleusercontent\.com\/d\/([-\w]{20,})/)
+         || u.match(/\/d\/([-\w]{20,})/);
+  return m ? m[1] : null;
 }
+// ordered list of URLs to try for one photo link (Drive links need a public file)
+function photoSources(u, size){
+  size = size || 1200;
+  const id = driveId(u);
+  if (id) return [
+    `https://lh3.googleusercontent.com/d/${id}=w${size}`,
+    `https://drive.google.com/thumbnail?id=${id}&sz=w${size}`
+  ];
+  return [String(u).trim()];
+}
+// <img onerror> handler: try the next candidate, then give up quietly
+window.__imgFallback = function(img){
+  try {
+    const list = JSON.parse(img.getAttribute("data-srcs") || "[]");
+    const i = (parseInt(img.getAttribute("data-i"),10) || 0) + 1;
+    if (i < list.length){ img.setAttribute("data-i", i); img.src = list[i]; return; }
+  } catch(e){}
+  img.style.display = "none";
+};
 const parsePhotos = s => String(s||"").split(/[\n,|]+/).map(x=>x.trim()).filter(x=>/^https?:\/\//.test(x));
 
 function isPhotoUrl(u){
@@ -506,7 +541,10 @@ function panelContent(g){
   const cards=ccs.map(c=>{
     const meta=[c.project,c.location].filter(Boolean).map(escapeHtml).join(" · ");
     const gallery=c.photos.length
-      ? `<div class="gallery">${c.photos.map(p=>`<img loading="lazy" src="${driveImg(p,800)}" data-full="${driveImg(p,1600)}" alt="${escapeHtml(c.cc)} planting" onerror="this.style.display='none'">`).join("")}</div>`
+      ? `<div class="gallery">${c.photos.map(p=>{
+          const s=photoSources(p,800), full=photoSources(p,1600);
+          return `<img loading="lazy" src="${s[0]}" data-srcs='${JSON.stringify(s)}' data-i="0" data-full='${JSON.stringify(full)}' alt="${escapeHtml(c.cc)} planting" onerror="window.__imgFallback(this)">`;
+        }).join("")}</div>`
       : "";
     return `<div class="cc-card">
       <div class="cc-head"><span class="cc-name">${escapeHtml(c.cc)}</span><span class="cc-trees">${c.trees.toLocaleString()} trees</span></div>
@@ -526,13 +564,52 @@ function openPanel(g){
   $("panel").innerHTML=panelContent(g);
   $("overlay").classList.add("show"); $("overlay").setAttribute("aria-hidden","false");
   $("panel-close").addEventListener("click", closePanel);
-  $("panel").querySelectorAll(".gallery img").forEach(img=>img.addEventListener("click", ()=>openLightbox(img.dataset.full)));
+  $("panel").querySelectorAll(".gallery img").forEach(img=>img.addEventListener("click", ()=>{
+    let full; try{ full=JSON.parse(img.getAttribute("data-full")); }catch(e){ full=[img.src]; }
+    openLightbox(full);
+  }));
 }
 function closePanel(){ openKey=null; $("overlay").classList.remove("show"); $("overlay").setAttribute("aria-hidden","true"); }
 $("overlay").addEventListener("click", e=>{ if(e.target===$("overlay")) closePanel(); });
-function openLightbox(src){ $("lightbox-img").src=src; $("lightbox").classList.add("show"); }
+function openLightbox(srcs){
+  const img=$("lightbox-img");
+  img.setAttribute("data-srcs", JSON.stringify(srcs)); img.setAttribute("data-i","0");
+  img.onerror=()=>window.__imgFallback(img);
+  img.src=srcs[0]; $("lightbox").classList.add("show");
+}
 $("lightbox").addEventListener("click", ()=>$("lightbox").classList.remove("show"));
 document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ $("lightbox").classList.remove("show"); closePanel(); } });
+
+let spotlightTimer=null;
+function renderSpotlight(){
+  const all=[]; byCountry.forEach(g=>g.ccs.forEach(c=>all.push({c,country:g.display})));
+  const el=$("spotlight");
+  if(!all.length){ el.classList.add("hidden"); return; }
+  const pick=all[Math.floor(Math.random()*all.length)];
+  const c=pick.c;
+  const photo=c.photos.length ? photoSources(c.photos[0],400)[0] : null;
+  const meta=[c.project,c.location||pick.country].filter(Boolean).map(escapeHtml).join(" · ");
+  el.innerHTML =
+    (photo?`<img class="sl-photo" src="${photo}" alt="${escapeHtml(c.cc)}" onerror="this.style.display='none'">`
+          :`<span class="sl-photo"></span>`)+
+    `<span>
+       <span class="sl-eyebrow">Spotlight</span>
+       <span class="sl-name">${escapeHtml(c.cc)}</span>
+       <span class="sl-meta">${meta}</span>
+       ${c.description?`<span class="sl-desc">${escapeHtml(c.description)}</span>`:""}
+       <span class="sl-trees">${c.trees.toLocaleString()} trees planted</span>
+     </span>`;
+  el.classList.remove("hidden");
+  el.onclick=()=>{ const g=byCountry.get(pick.country)||[...byCountry.values()].find(x=>x.display===pick.country); if(g) openPanel(g); };
+}
+function startSpotlight(){
+  renderSpotlight();
+  if(spotlightTimer) clearInterval(spotlightTimer);
+  spotlightTimer=setInterval(()=>{
+    const el=$("spotlight"); el.classList.add("fade");
+    setTimeout(()=>{ renderSpotlight(); el.classList.remove("fade"); }, 500);
+  }, 60000); // rotate every 60s
+}
 
 let lastUpdated=null;
 function setUpdatedLabel(){
@@ -550,6 +627,7 @@ async function refresh(initial){
   animateCount($("total"), initial?0:prevTotal, total);
   prevTotal=total;
   renderStats(); paint(); renderRoll();
+  if(initial) startSpotlight(); else renderSpotlight();
   if(openKey && byCountry.has(openKey)) openPanel(byCountry.get(openKey));
   lastUpdated=Date.now(); setUpdatedLabel();
   $("data-src").textContent = source==="sample"
