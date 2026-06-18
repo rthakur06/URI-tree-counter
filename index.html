@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>URI Tree Counter — Earth Restoration</title>
-<link rel="icon" href="https://www.uri.org/themes/custom/uri/logo.svg" />
+<link rel="icon" href="logo.svg" />
 
 <!-- ============================================================= -->
 <!--  CONFIG  —  Connect your Google Sheet here                     -->
@@ -79,7 +79,7 @@
     padding:12px 24px; transition:background .25s ease, box-shadow .25s ease, backdrop-filter .25s ease; }
   .topbar.scrolled{ background:rgba(255,255,255,.82); backdrop-filter:saturate(160%) blur(12px);
     -webkit-backdrop-filter:saturate(160%) blur(12px); box-shadow:0 1px 0 var(--line), var(--shadow-sm); }
-  .tb-brand img{ height:34px; display:block; }
+  .tb-brand img{ height:40px; display:block; }
   .brand-fallback{ font-family:"Mulish",sans-serif; font-weight:800; color:var(--ink); font-size:17px; }
   .tb-mini{ margin-left:auto; display:flex; align-items:baseline; gap:6px; opacity:0; transform:translateY(-4px);
     transition:opacity .25s ease, transform .25s ease; }
@@ -102,17 +102,20 @@
   /* ---------- HERO ---------- */
   .hero{ position:relative; overflow:hidden; text-align:center; padding:46px 0 30px; }
   .hero-inner{ position:relative; z-index:1; }
-  .aurora{ position:absolute; inset:-20% -10% auto -10%; height:140%; z-index:0; filter:blur(60px); opacity:.5; pointer-events:none; }
+  .aurora{ position:absolute; inset:-20% -10% auto -10%; height:140%; z-index:0; filter:blur(60px); opacity:.5; pointer-events:none; transition:transform .35s ease; will-change:transform; }
   .aurora span{ position:absolute; width:42vw; height:42vw; max-width:560px; max-height:560px; border-radius:50%; }
   .aurora span:nth-child(1){ left:8%; top:-10%; background:radial-gradient(circle,#cdeede,transparent 65%); animation:float1 16s ease-in-out infinite; }
   .aurora span:nth-child(2){ right:6%; top:0; background:radial-gradient(circle,#cfeaf2,transparent 65%); animation:float2 19s ease-in-out infinite; }
   .aurora span:nth-child(3){ left:38%; top:18%; background:radial-gradient(circle,#e9e3c9,transparent 70%); opacity:.7; animation:float1 22s ease-in-out infinite; }
   @keyframes float1{ 0%,100%{ transform:translateY(0) translateX(0);} 50%{ transform:translateY(24px) translateX(18px);} }
   @keyframes float2{ 0%,100%{ transform:translateY(0) translateX(0);} 50%{ transform:translateY(-22px) translateX(-16px);} }
+  .hero-glow{ position:absolute; top:0; left:0; width:520px; height:520px; border-radius:50%; pointer-events:none; z-index:0;
+    background:radial-gradient(circle, rgba(22,166,179,.20), rgba(46,139,87,.10) 42%, transparent 70%);
+    opacity:0; transition:opacity .3s ease; will-change:transform; }
   .hero-total{ font-weight:800; font-size:clamp(76px,16vw,184px); line-height:.92; letter-spacing:-.03em; margin:14px 0 0;
     font-variant-numeric:tabular-nums; color:var(--green-deep);
     background:linear-gradient(120deg,var(--green) 0%,var(--teal-bright) 100%);
-    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; transition:transform .18s ease; will-change:transform; transform-origin:center; }
   .hero-label{ font-weight:700; font-size:clamp(19px,3vw,27px); color:var(--ink); margin:6px 0 0; }
   .hero-range{ color:var(--muted); font-size:15px; margin:10px 0 0; }
   .live{ display:inline-flex; align-items:center; gap:8px; margin-top:18px; font-size:12px; letter-spacing:.12em;
@@ -300,8 +303,9 @@
 
 <nav class="topbar" id="topbar">
   <a class="tb-brand" href="https://www.uri.org" target="_blank" rel="noopener" aria-label="United Religions Initiative">
-    <img src="https://www.uri.org/themes/custom/uri/logo.svg" alt="United Religions Initiative"
-         onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'brand-fallback',textContent:'United Religions Initiative'}))" />
+    <img src="logo.svg" alt="United Religions Initiative"
+         data-fallback="https://www.uri.org/themes/custom/uri/logo.svg"
+         onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback');}else{this.replaceWith(Object.assign(document.createElement('span'),{className:'brand-fallback',textContent:'United Religions Initiative'}));}" />
   </a>
   <div class="tb-mini" id="tb-mini"><span class="tb-num" id="tb-total">0</span><span class="tb-lbl">trees</span></div>
   <a class="btn btn-sm" id="tb-cta" href="#" target="_blank" rel="noopener">Add your trees</a>
@@ -309,6 +313,7 @@
 
 <header class="hero" id="hero">
   <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+  <span class="hero-glow" aria-hidden="true"></span>
   <div class="wrap hero-inner">
     <p class="eyebrow">Earth Restoration · Tree Counter</p>
     <div class="hero-total" id="total" aria-live="polite">0</div>
@@ -380,9 +385,11 @@
   </div>
 
   <footer>
-    <img src="https://www.uri.org/themes/custom/uri/logo.svg" alt="United Religions Initiative" onerror="this.style.display='none'" /><br />
+    <img src="logo.svg" alt="United Religions Initiative"
+         data-fallback="https://www.uri.org/themes/custom/uri/logo.svg"
+         onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback');}else{this.style.display='none';}" /><br />
     <strong>URI Tree Counter</strong> — a project of the United Religions Initiative<br />
-    Earth Restoration
+    Earth Restoration · Rev. Lauren Van Ham
     <div class="src" id="data-src"></div>
   </footer>
 </div>
@@ -457,7 +464,7 @@ const COUNTRY_ALIASES = {
   "south korea":"South Korea","korea":"South Korea","republic of korea":"South Korea",
   "north korea":"North Korea","south sudan":"S. Sudan","western sahara":"W. Sahara",
   "solomon islands":"Solomon Is.","myanmar":"Myanmar","burma":"Myanmar",
-  "russian federation":"Russia","viet nam":"Vietnam","tanzania":"Tanzania","macedonia former yugoslav republic of":"Macedonia"
+  "russian federation":"Russia","viet nam":"Vietnam","tanzania":"Tanzania","macedonia former yugoslav republic of":"Macedonia","somali":"Somalia","somali land":"Somalia"
 };
 let FEATURE_BY_NORM = new Map();
 function matchFeature(country){
@@ -642,7 +649,7 @@ function paint(){
       .on("blur", hideTip)
       .on("keydown", e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openPanel(g); } });
   });
-  $("map-count").textContent = `${placed.length} ${placed.length===1?"country":"countries"}`;
+  const nC=byCountry.size; $("map-count").textContent = `${nC} ${nC===1?"country":"countries"}`;
 }
 
 function showTip(event,g){
@@ -824,6 +831,30 @@ async function refresh(initial){
 }
 
 let rollSort="trees";
+function setupHeroCursor(){
+  const hero=$("hero"); if(!hero) return;
+  if(!window.matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const aurora=hero.querySelector(".aurora"), glow=hero.querySelector(".hero-glow"), total=$("total");
+  let raf=null, cx=0, cy=0, gx=0, gy=0;
+  hero.addEventListener("pointermove", e=>{
+    const r=hero.getBoundingClientRect();
+    cx=(e.clientX-r.left)/r.width-0.5; cy=(e.clientY-r.top)/r.height-0.5;
+    gx=e.clientX-r.left; gy=e.clientY-r.top;
+    if(glow) glow.style.opacity="1";
+    if(!raf) raf=requestAnimationFrame(()=>{
+      raf=null;
+      if(aurora) aurora.style.transform=`translate3d(${cx*-26}px,${cy*-26}px,0)`;
+      if(glow) glow.style.transform=`translate3d(${gx}px,${gy}px,0) translate(-50%,-50%)`;
+      if(total) total.style.transform=`perspective(900px) rotateY(${cx*5}deg) rotateX(${cy*-5}deg)`;
+    });
+  });
+  hero.addEventListener("pointerleave", ()=>{
+    if(aurora) aurora.style.transform="";
+    if(total) total.style.transform="";
+    if(glow) glow.style.opacity="0";
+  });
+}
 function setupInteractions(){
   const tb=$("topbar"), hero=$("hero");
   const onScroll=()=>{ const past=window.scrollY>(hero?hero.offsetHeight-70:160); if(tb) tb.classList.toggle("scrolled",past); };
@@ -837,6 +868,7 @@ function setupInteractions(){
     const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } }), {threshold:.12});
     document.querySelectorAll("#content > section, .stats").forEach(el=>{ el.classList.add("reveal"); io.observe(el); });
   }
+  setupHeroCursor();
 }
 
 (async function init(){
