@@ -102,6 +102,8 @@
   /* ---------- HERO ---------- */
   .hero{ position:relative; overflow:hidden; text-align:center; padding:46px 0 30px; }
   .hero-inner{ position:relative; z-index:1; }
+  .hero-logo{ display:inline-block; margin:0 auto 12px; line-height:0; }
+  .hero-logo img{ height:64px; width:auto; display:block; }
   .aurora{ position:absolute; inset:-20% -10% auto -10%; height:140%; z-index:0; filter:blur(60px); opacity:.5; pointer-events:none; transition:transform .35s ease; will-change:transform; }
   .aurora span{ position:absolute; width:42vw; height:42vw; max-width:560px; max-height:560px; border-radius:50%; }
   .aurora span:nth-child(1){ left:8%; top:-10%; background:radial-gradient(circle,#cdeede,transparent 65%); animation:float1 16s ease-in-out infinite; }
@@ -283,6 +285,7 @@
   .reveal.in{ opacity:1; transform:none; }
 
   @media (max-width:600px){
+    .hero-logo img{ height:52px; }
     .stats,.sk-stats{ grid-template-columns:1fr; }
     .sk-map{ height:240px; }
     .roll-row{ grid-template-columns:24px 1fr auto; padding:14px 16px; gap:12px; }
@@ -315,6 +318,11 @@
   <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
   <span class="hero-glow" aria-hidden="true"></span>
   <div class="wrap hero-inner">
+    <a class="hero-logo" href="https://www.uri.org" target="_blank" rel="noopener" aria-label="United Religions Initiative">
+      <img src="logo.svg" alt="United Religions Initiative"
+           data-fallback="https://www.uri.org/themes/custom/uri/logo.svg"
+           onerror="if(this.dataset.fallback){this.src=this.dataset.fallback;this.removeAttribute('data-fallback');}else{this.closest('.hero-logo').style.display='none';}" />
+    </a>
     <p class="eyebrow">Earth Restoration · Tree Counter</p>
     <div class="hero-total" id="total" aria-live="polite">0</div>
     <p class="hero-label">trees planted across the network</p>
