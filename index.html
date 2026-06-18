@@ -102,20 +102,17 @@
   /* ---------- HERO ---------- */
   .hero{ position:relative; overflow:hidden; text-align:center; padding:46px 0 30px; }
   .hero-inner{ position:relative; z-index:1; }
-  .aurora{ position:absolute; inset:-20% -10% auto -10%; height:140%; z-index:0; filter:blur(60px); opacity:.5; pointer-events:none; transition:transform .35s ease; will-change:transform; }
+  .aurora{ position:absolute; inset:-20% -10% auto -10%; height:140%; z-index:0; filter:blur(60px); opacity:.5; pointer-events:none; }
   .aurora span{ position:absolute; width:42vw; height:42vw; max-width:560px; max-height:560px; border-radius:50%; }
   .aurora span:nth-child(1){ left:8%; top:-10%; background:radial-gradient(circle,#cdeede,transparent 65%); animation:float1 16s ease-in-out infinite; }
   .aurora span:nth-child(2){ right:6%; top:0; background:radial-gradient(circle,#cfeaf2,transparent 65%); animation:float2 19s ease-in-out infinite; }
   .aurora span:nth-child(3){ left:38%; top:18%; background:radial-gradient(circle,#e9e3c9,transparent 70%); opacity:.7; animation:float1 22s ease-in-out infinite; }
   @keyframes float1{ 0%,100%{ transform:translateY(0) translateX(0);} 50%{ transform:translateY(24px) translateX(18px);} }
   @keyframes float2{ 0%,100%{ transform:translateY(0) translateX(0);} 50%{ transform:translateY(-22px) translateX(-16px);} }
-  .hero-glow{ position:absolute; top:0; left:0; width:520px; height:520px; border-radius:50%; pointer-events:none; z-index:0;
-    background:radial-gradient(circle, rgba(22,166,179,.20), rgba(46,139,87,.10) 42%, transparent 70%);
-    opacity:0; transition:opacity .3s ease; will-change:transform; }
   .hero-total{ font-weight:800; font-size:clamp(76px,16vw,184px); line-height:.92; letter-spacing:-.03em; margin:14px 0 0;
     font-variant-numeric:tabular-nums; color:var(--green-deep);
     background:linear-gradient(120deg,var(--green) 0%,var(--teal-bright) 100%);
-    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; transition:transform .18s ease; will-change:transform; transform-origin:center; }
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .hero-label{ font-weight:700; font-size:clamp(19px,3vw,27px); color:var(--ink); margin:6px 0 0; }
   .hero-range{ color:var(--muted); font-size:15px; margin:10px 0 0; }
   .live{ display:inline-flex; align-items:center; gap:8px; margin-top:18px; font-size:12px; letter-spacing:.12em;
@@ -312,7 +309,6 @@
 
 <header class="hero" id="hero">
   <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
-  <span class="hero-glow" aria-hidden="true"></span>
   <div class="wrap hero-inner">
     <p class="eyebrow">Earth Restoration · Tree Counter</p>
     <div class="hero-total" id="total" aria-live="polite">0</div>
@@ -386,7 +382,7 @@
   <footer>
     <img src="https://www.uri.org/themes/custom/uri/logo.svg" alt="United Religions Initiative" onerror="this.style.display='none'" /><br />
     <strong>URI Tree Counter</strong> — a project of the United Religions Initiative<br />
-    Earth Restoration · Rev. Lauren Van Ham
+    Earth Restoration
     <div class="src" id="data-src"></div>
   </footer>
 </div>
@@ -828,30 +824,6 @@ async function refresh(initial){
 }
 
 let rollSort="trees";
-function setupHeroCursor(){
-  const hero=$("hero"); if(!hero) return;
-  if(!window.matchMedia("(hover:hover) and (pointer:fine)").matches) return;
-  if(window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const aurora=hero.querySelector(".aurora"), glow=hero.querySelector(".hero-glow"), total=$("total");
-  let raf=null, cx=0, cy=0, gx=0, gy=0;
-  hero.addEventListener("pointermove", e=>{
-    const r=hero.getBoundingClientRect();
-    cx=(e.clientX-r.left)/r.width-0.5; cy=(e.clientY-r.top)/r.height-0.5;
-    gx=e.clientX-r.left; gy=e.clientY-r.top;
-    if(glow) glow.style.opacity="1";
-    if(!raf) raf=requestAnimationFrame(()=>{
-      raf=null;
-      if(aurora) aurora.style.transform=`translate3d(${cx*-26}px,${cy*-26}px,0)`;
-      if(glow) glow.style.transform=`translate3d(${gx}px,${gy}px,0) translate(-50%,-50%)`;
-      if(total) total.style.transform=`perspective(900px) rotateY(${cx*5}deg) rotateX(${cy*-5}deg)`;
-    });
-  });
-  hero.addEventListener("pointerleave", ()=>{
-    if(aurora) aurora.style.transform="";
-    if(total) total.style.transform="";
-    if(glow) glow.style.opacity="0";
-  });
-}
 function setupInteractions(){
   const tb=$("topbar"), hero=$("hero");
   const onScroll=()=>{ const past=window.scrollY>(hero?hero.offsetHeight-70:160); if(tb) tb.classList.toggle("scrolled",past); };
@@ -865,7 +837,6 @@ function setupInteractions(){
     const io=new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } }), {threshold:.12});
     document.querySelectorAll("#content > section, .stats").forEach(el=>{ el.classList.add("reveal"); io.observe(el); });
   }
-  setupHeroCursor();
 }
 
 (async function init(){
