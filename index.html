@@ -707,7 +707,7 @@ function renderStats(){
   const items=[
     {num:vals.length, lbl:"Countries"},
     {num:ccNames.size, lbl:"Cooperation Circles"},
-    {num:projects, lbl:"Plantings logged"}
+    {num:projects, lbl:"Plantings recorded"}
   ];
   $("stats").innerHTML=items.map(i=>`<div class="stat"><div class="num">${i.num.toLocaleString()}</div><div class="lbl">${i.lbl}</div></div>`).join("");
 }
