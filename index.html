@@ -211,6 +211,19 @@
   .impact-card .ic-lbl{ color:var(--ink-2); font-size:13px; margin-top:8px; }
   .impact-note{ color:var(--muted); font-size:12px; margin-top:14px; line-height:1.5; }
 
+  /* ---------- SUPPORTED CATEGORY ---------- */
+  .badge{ display:inline-block; background:var(--green-soft); color:var(--green-deep); font-size:11px; font-weight:700;
+    letter-spacing:.02em; padding:3px 9px; border-radius:999px; vertical-align:middle; white-space:nowrap; }
+  .support-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+  .support-card{ display:block; width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:18px 20px;
+    box-shadow:var(--shadow-sm); transition:transform .15s ease, box-shadow .2s ease; }
+  .support-card:hover{ transform:translateY(-2px); box-shadow:var(--shadow); }
+  .support-card:focus-visible{ outline:3px solid rgba(22,166,179,.4); outline-offset:2px; }
+  .support-card .sc-name{ display:block; font-weight:700; color:var(--ink); font-size:16px; }
+  .support-card .sc-meta{ display:block; color:var(--muted); font-size:13px; margin-top:4px; }
+  .support-card .sc-trees{ display:block; font-weight:800; color:var(--green-deep); font-size:15px; margin-top:8px; }
+
   /* ---------- COUNTRY LIST ---------- */
   .roll{ display:grid; gap:1px; background:var(--line); border-radius:var(--r); overflow:hidden; border:1px solid var(--line); margin-top:12px; box-shadow:var(--shadow-sm); }
   .roll-row{ display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:16px; background:var(--card);
@@ -376,6 +389,12 @@
       <div class="roll" id="roll"></div>
     </section>
 
+    <section id="supported-section" class="hidden">
+      <div class="section-head"><h2>Global &amp; regionally supported</h2><span class="count" id="supported-count"></span></div>
+      <p class="hint">Projects made possible with seed funding or organizing support from a URI Global or Regional office. These are already included in the total above &mdash; this view simply recognizes them, without counting any tree twice.</p>
+      <div class="support-grid" id="supported-list"></div>
+    </section>
+
     <section id="mosaic-section" class="hidden">
       <div class="section-head"><h2>From the ground</h2><span class="count" id="mosaic-count"></span></div>
       <p class="hint">Photos shared by Cooperation Circles across the network. Tap any image to view it.</p>
@@ -435,7 +454,8 @@ const FIELD_ALIASES = {
   description:["description","notes","note","about","story","details"],
   photos:["photos","photo","images","image","pictures","picture","pics","gallery","links"],
   location:["location","place","city, country","city","where"],
-  date:["date","date planted","planting date","planted"]
+  date:["date","date planted","planting date","planted"],
+  supported:["global or regionally supported","globally or regionally supported","global or regionally supported projects","regionally supported","globally supported","uri supported","uri support","supported by","funded by","funding","funding source","organized by","uri office"]
 };
 const norm = s => String(s||"").trim().toLowerCase();
 function buildHeaderMap(headers){
@@ -445,7 +465,8 @@ function buildHeaderMap(headers){
     for(const f in FIELD_ALIASES){ if(!m[f] && FIELD_ALIASES[f].includes(n)){ m[f]=h; used.add(h); break; } } });
   // pass 2 — keyword heuristics for Google Form question wording (each header -> one field)
   headers.forEach(h=>{ if(used.has(h)) return; const n=norm(h);
-    if(!m.country && n.includes("country")){ m.country=h; used.add(h); }
+    if(!m.supported && (n.includes("support")||n.includes("funded")||n.includes("funding")||n.includes("organized by")||(n.includes("uri")&&(n.includes("global")||n.includes("regional")||n.includes("office"))))){ m.supported=h; used.add(h); }
+    else if(!m.country && n.includes("country")){ m.country=h; used.add(h); }
     else if(!m.trees && (n.includes("tree")||n.includes("number of"))){ m.trees=h; used.add(h); }
     else if(!m.location && (n.includes("city")||n.includes("region")||n.includes("location")||n.includes("place"))){ m.location=h; used.add(h); }
     else if(!m.cc && (n.includes("cooperation circle")||/\bcc\b/.test(n)||n.includes("name of your"))){ m.cc=h; used.add(h); }
@@ -539,6 +560,9 @@ function parseRows(rows){
     let desc = String(get("description")||"").trim();
     photos.forEach(u=>{ if(desc.includes(u)) desc = desc.split(u).join(" "); });
     desc = desc.replace(/\s{2,}/g," ").trim();
+    const sv=String(get("supported")||"").trim(), svLow=sv.toLowerCase();
+    const supported=!["","no","false","n","0","none","-","n/a","na"].includes(svLow);
+    const supportLabel=(supported && !["yes","true","y","x","1","✓"].includes(svLow)) ? sv : "";
     out.push({
       country:String(get("country")||"").trim(),
       project:String(get("project")||"").trim(),
@@ -546,6 +570,8 @@ function parseRows(rows){
       description:desc,
       location:String(get("location")||"").trim(),
       photos:photos,
+      supported:supported,
+      supportLabel:supportLabel,
       date:String(get("date")||"").trim(),
       trees
     });
@@ -569,6 +595,8 @@ function dedupeRows(rows){
       if(!e.description && d.description) e.description=d.description;
       if(!e.location && d.location) e.location=d.location;
       if(!e.project && d.project) e.project=d.project;
+      if(!e.supported && d.supported){ e.supported=true; e.supportLabel=d.supportLabel; }
+      if(e.supported && !e.supportLabel && d.supportLabel) e.supportLabel=d.supportLabel;
     }
   });
   return [...seen.values()];
@@ -715,6 +743,28 @@ function renderRoll(){
   }));
 }
 
+function renderSupported(){
+  const items=[];
+  byCountry.forEach(g=>g.ccs.forEach(c=>{ if(c.supported) items.push({c, country:g.display, key:g.key}); }));
+  const sec=$("supported-section");
+  if(!items.length){ sec.classList.add("hidden"); return; }
+  sec.classList.remove("hidden");
+  items.sort((a,b)=>b.c.trees-a.c.trees);
+  $("supported-count").textContent=`${items.length} project${items.length===1?"":"s"}`;
+  $("supported-list").innerHTML=items.map(it=>{
+    const c=it.c, label=c.supportLabel||"URI Global / Regional support";
+    const meta=[escapeHtml(it.country), c.location?escapeHtml(c.location):""].filter(Boolean).join(" \u00b7 ");
+    return `<button class="support-card" data-key="${escapeHtml(it.key)}">
+      <span class="sc-name">${escapeHtml(c.cc)} <span class="badge">${escapeHtml(label)}</span></span>
+      <span class="sc-meta">${meta}</span>
+      <span class="sc-trees">${c.trees.toLocaleString()} trees</span>
+    </button>`;
+  }).join("");
+  $("supported-list").querySelectorAll(".support-card").forEach(b=>b.addEventListener("click",()=>{
+    const g=byCountry.get(b.getAttribute("data-key")); if(g) openPanel(g);
+  }));
+}
+
 function renderMosaic(){
   const items=[];
   byCountry.forEach(g=>g.ccs.forEach(c=>c.photos.forEach(p=>items.push({p, cc:c.cc, country:g.display}))));
@@ -746,7 +796,7 @@ function panelContent(g){
         }).join("")}</div>`
       : "";
     return `<div class="cc-card">
-      <div class="cc-head"><span class="cc-name">${escapeHtml(c.cc)}</span><span class="cc-trees">${c.trees.toLocaleString()} trees</span></div>
+      <div class="cc-head"><span class="cc-name">${escapeHtml(c.cc)}${c.supported?` <span class="badge">${escapeHtml(c.supportLabel||"URI-supported")}</span>`:""}</span><span class="cc-trees">${c.trees.toLocaleString()} trees</span></div>
       ${meta?`<div class="cc-proj">${meta}</div>`:""}
       ${c.description?`<p class="cc-desc">${escapeHtml(c.description)}</p>`:""}
       ${gallery}
@@ -796,7 +846,7 @@ function renderSpotlight(){
           :`<span class="sl-photo"></span>`)+
     `<span>
        <span class="sl-eyebrow">Spotlight</span>
-       <span class="sl-name">${escapeHtml(c.cc)}</span>
+       <span class="sl-name">${escapeHtml(c.cc)}${c.supported?` <span class="badge">${escapeHtml(c.supportLabel||"URI-supported")}</span>`:""}</span>
        <span class="sl-meta">${meta}</span>
        ${c.description?`<span class="sl-desc">${escapeHtml(c.description)}</span>`:""}
        <span class="sl-trees">${c.trees.toLocaleString()} trees planted</span>
@@ -829,7 +879,7 @@ async function refresh(initial){
   animateCount($("total"), initial?0:prevTotal, total);
   prevTotal=total;
   { const tbt=$("tb-total"); if(tbt) tbt.textContent=total.toLocaleString(); }
-  renderStats(); renderImpact(total); paint(); renderRoll(); renderMosaic();
+  renderStats(); renderImpact(total); paint(); renderRoll(); renderSupported(); renderMosaic();
   if(initial) startSpotlight(); else renderSpotlight();
   if(openKey && byCountry.has(openKey)) openPanel(byCountry.get(openKey));
   lastUpdated=Date.now(); setUpdatedLabel();
